@@ -51,6 +51,14 @@ impl Node {
         self.board
     }
 
+    pub fn get_legal_moves(&self) -> Vec<Move> {
+        self.board.get_legal_moves()
+    }
+
+    pub fn get_active_player(&self) -> Option<Player> {
+        self.board.get_active_player()
+    }
+
     pub fn n_children(&self) -> usize {
         self.children.len()
     }
@@ -61,6 +69,10 @@ impl Node {
         } else {
             return 1 + self.children.iter().map(|child| child.get_max_depth()).max().unwrap();
         }
+    }
+
+    pub fn get_children(&self) -> &Vec<Node> {
+        &self.children
     }
 
     pub fn get_child(&self, row: usize, col: usize) -> Result<&Node, String> {

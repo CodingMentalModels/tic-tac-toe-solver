@@ -56,7 +56,7 @@ mod test_integration_tests {
                 XOX",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves(), vec![Move::new(1, 1)]);
+        assert_eq!(solver.get_next_moves(), Ok(vec![Move::new(1, 1)]));
 
         let mut solver = Solver::from_board(
             Board::from_position(
@@ -65,7 +65,54 @@ mod test_integration_tests {
                 ___",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves(), vec![Move::new(0, 1)]);
+        assert_eq!(solver.get_next_moves(), Ok(vec![Move::new(0, 1), Move::new(1, 1)]));
+
+        let mut solver = Solver::from_board(
+            Board::from_position(
+                "XO_
+                _X_
+                ___",
+            ).unwrap()
+        );
+        assert_eq!(solver.get_next_moves().unwrap().len(), 6);
+        
+        let mut solver = Solver::from_board(
+            Board::from_position(
+                "XO_
+                _X_
+                __O",
+            ).unwrap()
+        );
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(2, 0)], 1.)));
+
+        let mut solver = Solver::from_board(
+            Board::from_position(
+                "XO_
+                ___
+                ___",
+            ).unwrap()
+        );
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(1, 1), Move::new(2, 0)], 1.)));
+
+        
+        let mut solver = Solver::from_board(
+            Board::from_position(
+                "XOX
+                _O_
+                __X",
+            ).unwrap()
+        );
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 2), Move::new(2, 1)], -1.)));
+
+        let mut solver = Solver::from_board(
+            Board::from_position(
+                "XO_
+                O__
+                XXO",
+            ).unwrap()
+        );
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(0, 2), Move::new(1, 1), Move::new(1, 2)], 0.)));
+
     }
 
 }

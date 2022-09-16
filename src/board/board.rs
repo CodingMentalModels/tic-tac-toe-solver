@@ -146,6 +146,18 @@ impl Board {
             Some(Player::O)
         }
     }
+
+    pub fn get_legal_moves(&self) -> Vec<Move> {
+        let mut moves = Vec::new();
+        for row in 0..3 {
+            for col in 0..3 {
+                if !self.is_set(row, col) {
+                    moves.push(Move::new(row, col));
+                }
+            }
+        }
+        moves
+    }
     
 }
 
