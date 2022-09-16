@@ -36,6 +36,20 @@ Goal: Create a representation of the game tree, in order to model the space of a
 
 Goal: Construct the entire game tree and determine the optimal move at each decision point by working backwards from the payoffs.  
 
+Evaluations:
+* X Winning = 1.0
+* O Winning = -1.0
+* Drawn = 0.0
+
+In between values refer to those where the evaluation is uncertain.
+
+Cases:
+* We're already at a root node -- 
+
 ### Implement a Command Line Interface (CLI) for interacting with the solver
 
 Goal: In the terminal, we should be able to call the solver on a certain position and get the results.
+
+### TODO: Improve the rendering of the output to show the best move
+
+### TODO: Print the path of the optimal game

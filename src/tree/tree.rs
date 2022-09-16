@@ -88,10 +88,6 @@ impl Node {
             )
     }
 
-    pub fn get_move(&self) -> &Move {
-        unimplemented!();
-    }
-
     pub fn get_outcome(&self) -> Outcome {
         self.board.get_outcome()
     }
