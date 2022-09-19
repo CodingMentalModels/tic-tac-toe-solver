@@ -1,3 +1,5 @@
+use ansi_term::Colour;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Move {
@@ -9,6 +11,34 @@ impl Move {
 
     pub fn new(row: usize, col: usize) -> Move {
         Move { row, col }
+    }
+
+    pub fn to_string_on_board(&self, board: &Board) -> Result<String, String> {
+        let player = match board.get_active_player() {
+            Some(player) => player,
+            None => return Err("Game is already over".to_string()),
+        };
+        let maybe_board = board.with_move_made(player, *self);
+        let final_board = match maybe_board {
+            Ok(b) => b,
+            Err(_) => {return Err("Invalid move".to_string());},
+        };
+        let mut to_print = "".to_string();
+        for row in 0..3 {
+            for col in 0..3 {
+                if row == self.row && col == self.col {
+                    to_print.push_str(&(Colour::Green.prefix().to_string() + &player.to_string() + &Colour::Green.suffix().to_string()));
+                } else if final_board.x_bitboard.is_set(row, col) {
+                    to_print.push_str("X");
+                } else if final_board.o_bitboard.is_set(row, col) {
+                    to_print.push_str("O");
+                } else {
+                    to_print.push_str("_");
+                }
+            }
+            to_print.push_str("\n");
+        }
+        return Ok(to_print.trim_end().to_string());
     }
 
     pub fn get_row(&self) -> usize {
@@ -71,6 +101,28 @@ impl Board {
                     to_return += "O";
                 } else {
                     to_return += "_";
+                }
+            }
+            to_return += "\n";
+        }
+        return to_return.trim_end().to_string();
+    }
+
+    pub fn to_string_with_square_highlighted(&self, row: usize, col: usize) -> String {
+        let mut to_return = "".to_string();
+        for r in 0..3 {
+            for c in 0..3 {
+                let to_add = if self.x_bitboard.is_set(r, c) {
+                    "X"
+                } else if self.o_bitboard.is_set(r, c) {
+                    "O"
+                } else {
+                    "_"
+                };
+                if r == row && c == col {
+                    to_return += &(Colour::Green.prefix().to_string() + &to_add.to_string() + &Colour::Green.suffix().to_string());
+                } else {
+                    to_return += &to_add;
                 }
             }
             to_return += "\n";
@@ -447,8 +499,54 @@ mod test_board_tests {
 
     }
 
+    #[test]
+    fn test_board_gets_legal_moves() {
+        let board = Board::from_position(
+            "___
+            ___
+            ___",
+        ).unwrap();
+        assert_eq!(board.get_legal_moves(), vec![Move::new(0, 0), Move::new(0, 1), Move::new(0, 2), Move::new(1, 0), Move::new(1, 1), Move::new(1, 2), Move::new(2, 0), Move::new(2, 1), Move::new(2, 2)]);
+
+        let board = Board::from_position(
+            "XOX
+            OXO
+            XOX",
+        ).unwrap();
+        assert_eq!(board.get_legal_moves(), vec![]);
+
+        let board = Board::from_position(
+            "XOX
+            OXO
+            O_X",
+        ).unwrap();
+        assert_eq!(board.get_legal_moves(), vec![Move::new(2, 1)]);
+
+        let board = Board::from_position(
+            "XOX
+            _X_
+            __O",
+        ).unwrap();
+        assert_eq!(board.get_legal_moves(), vec![Move::new(1, 0), Move::new(1, 2), Move::new(2, 0), Move::new(2, 1)]);
+    }
+
+    #[test]
     fn test_move_instantiates() {
         let m = Move::from_string("1 2").unwrap();
         assert_eq!(m, Move::new(1, 2));
     }
+
+    #[test]
+    fn test_board_pretty_prints_with_square_highlighted() {
+        let board = Board::from_position(
+            "__X
+            ___
+            ___",
+        ).unwrap();
+        assert_eq!(board.to_string_with_square_highlighted(0, 2), 
+            "__\u{1b}[32mX\u{1b}[0m\n___\n___".to_string()
+        );
+    }
+
+
 }
