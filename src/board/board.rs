@@ -60,6 +60,23 @@ impl Board {
             o_bitboard: Bitboard::empty(),
         }
     }
+
+    pub fn to_string(&self) -> String {
+        let mut to_return = "".to_string();
+        for row in 0..3 {
+            for col in 0..3 {
+                if self.x_bitboard.is_set(row, col) {
+                    to_return += "X";
+                } else if self.o_bitboard.is_set(row, col) {
+                    to_return += "O";
+                } else {
+                    to_return += "_";
+                }
+            }
+            to_return += "\n";
+        }
+        return to_return.trim_end().to_string();
+    }
     
     pub fn new(x_bitboard: Bitboard, o_bitboard: Bitboard) -> Board {
         Board { x_bitboard, o_bitboard }
@@ -230,16 +247,16 @@ impl Bitboard {
         self.intersection(&other) == other
     }
 
-    pub fn set(&mut self, col: usize, row: usize) {
-        self.0 |= 1 << ((2 - col) * 3 + (2 - row));
+    pub fn set(&mut self, row: usize, col: usize) {
+        self.0 |= 1 << ((2 - row) * 3 + (2 - col));
     }
 
     pub fn n_set(&self) -> usize {
         self.0.count_ones() as usize
     }
 
-    pub fn is_set(&self, col: usize, row: usize) -> bool {
-        self.0 & (1 << ((2 - col) * 3 + (2 - row))) != 0
+    pub fn is_set(&self, row: usize, col: usize) -> bool {
+        self.0 & (1 << ((2 - row) * 3 + (2 - col))) != 0
     }
 
 }
@@ -251,6 +268,18 @@ pub enum Outcome {
     Draw,
     InProgress,
     Ambiguous,
+}
+
+impl Outcome {
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Outcome::Victory(player) => format!("{} wins", player.to_string()),
+            Outcome::Draw => "Draw".to_string(),
+            Outcome::InProgress => "Game in progress".to_string(),
+            Outcome::Ambiguous => "Ambiguous".to_string(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -356,6 +385,27 @@ mod test_board_tests {
                 _X_",
             ).unwrap()
         );
+    }
+
+    #[test]
+    fn test_board_pretty_prints() {
+        let board = Board::from_position(
+            "___
+            ___
+            ___",
+        ).unwrap();
+        assert_eq!(board.to_string(),
+        "___\n___\n___".to_string()
+        );
+
+        let board = Board::from_position(
+            "XOX
+            OXO
+            XOX",
+        ).unwrap();
+        assert_eq!(
+            board.to_string(),
+            "XOX\nOXO\nXOX".to_string());
     }
 
     fn test_board_gets_active_player() {

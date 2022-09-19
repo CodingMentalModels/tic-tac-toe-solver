@@ -11,49 +11,59 @@ impl Solver {
         Solver { tree }
     }
 
-    pub fn get_evaluation(&self) -> f32 {
+    pub fn get_evaluation(&self) -> Evaluation {
         let root = self.tree.get_root();
-        self.get_evaluation_for_node(root)
+        self.get_evaluation_and_line_for_node(root).0
     }
 
-    fn get_evaluation_for_node(&self, node: &Node) -> f32 {
+    fn get_evaluation_and_line_for_node(&self, node: &Node) -> (Evaluation, Vec<Move>) {
         let children = node.get_children().iter();
         if children.len() == 0 {
-            return Solver::get_evaluation_for_outcome(node.get_board().get_outcome());
+            return (Solver::get_evaluation_for_outcome(node.get_board().get_outcome()), Vec::new());
         }
         let active_player = node.get_active_player();
-        let mut best_move = match active_player {
-            Some(Player::X) => -1.,
-            Some(Player::O) => 1.,
-            None => panic!("There's no active player even though there the node has children."),
-        };
-        for child in children {
-            let child_evaluation = self.get_evaluation_for_node(child);
+        let mut best_evaluation = Evaluation(
+            match active_player {
+                Some(Player::X) => -1.,
+                Some(Player::O) => 1.,
+                None => panic!("There's no active player even though there the node has children."),
+            }
+        );
+        let mut best_move_line: Vec<Move> = Vec::new();
+
+        for child_move in node.get_legal_moves().iter() {
+            let child = node.get_child(child_move.get_row(), child_move.get_column()).expect("Move is legal by definition of get_legal_moves().");
+            let (child_evaluation, child_line) = self.get_evaluation_and_line_for_node(child);
             match active_player {
                 Some(Player::X) => {
-                    if child_evaluation > best_move {
-                        best_move = child_evaluation;
+                    if child_evaluation > best_evaluation {
+                        best_evaluation = child_evaluation;
+                        best_move_line = vec![*child_move];
+                        best_move_line.append(&mut child_line.clone());
                     }
                 },
                 Some(Player::O) => {
-                    if child_evaluation < best_move {
-                        best_move = child_evaluation;
+                    if child_evaluation < best_evaluation {
+                        best_evaluation = child_evaluation;
+                        best_move_line = vec![*child_move];
+                        best_move_line.append(&mut child_line.clone());
                     }
                 },
                 None => panic!("There's no active player even though there the node has children."),
             }
         }
-        return best_move;
+        return (best_evaluation, best_move_line);
     }
 
-    fn get_evaluation_for_outcome(outcome: Outcome) -> f32 {
-        match outcome {
+    fn get_evaluation_for_outcome(outcome: Outcome) -> Evaluation {
+        let raw_evaluation = match outcome {
             Outcome::InProgress => 0.,
             Outcome::Ambiguous => 0.,
             Outcome::Draw => 0.,
             Outcome::Victory(Player::X) => 1.,
             Outcome::Victory(Player::O) => -1.,
-        }
+        };
+        return Evaluation(raw_evaluation);
     }
 
     pub fn get_next_moves(&mut self) -> Result<Vec<Move>, String> {
@@ -61,7 +71,7 @@ impl Solver {
         return Ok(next_moves);
     }
 
-    pub fn get_next_moves_and_evaluation(&mut self) -> Result<(Vec<Move>, f32), String> {
+    pub fn get_next_moves_and_evaluation(&mut self) -> Result<(Vec<Move>, Evaluation), String> {
 
         let active_player = match self.tree.get_root().get_active_player() {
             Some(player) => player,
@@ -70,14 +80,16 @@ impl Solver {
 
         let root = self.tree.get_root();
         let mut next_moves = Vec::new();
-        let mut best_evaluation = match active_player {
-            Player::X => -2.,
-            Player::O => 2.,
-        };
+        let mut best_evaluation = Evaluation(
+            match active_player {
+                Player::X => -2.,
+                Player::O => 2.,
+            }
+        );
 
         for m in root.get_legal_moves().iter() {
             let child = root.get_child(m.get_row(), m.get_column()).unwrap();
-            let evaluation = self.get_evaluation_for_node(child);
+            let (evaluation, line) = self.get_evaluation_and_line_for_node(child);
             if ((evaluation > best_evaluation) && (active_player == Player::X)) ||
                 ((evaluation < best_evaluation) && (active_player == Player::O)) {
                 best_evaluation = evaluation;
@@ -88,6 +100,38 @@ impl Solver {
             }
         }
         return Ok((next_moves, best_evaluation));
+    }
+
+    pub fn get_evaluation_and_line(&self) -> (Evaluation, Vec<Move>) {
+        let root = self.tree.get_root();
+        self.get_evaluation_and_line_for_node(root)
+    }
+
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct Evaluation(f32);
+
+impl Evaluation {
+
+    pub fn new(evaluation: f32) -> Self {
+        Evaluation(evaluation)
+    }
+
+    pub fn get_evaluation(&self) -> f32 {
+        self.0
+    }
+
+    pub fn to_string(&self) -> String {
+        if self.0 > 0.9999 {
+            return "X is Winning".to_string();
+        } else if self.0 < -0.9999 {
+            return "O is Winning".to_string();
+        } else if self.0.abs() < 0.0001 {
+            return "Drawn".to_string();
+        } else {
+            return "Ambiguous".to_string();
+        }
     }
 }
 
@@ -106,7 +150,7 @@ mod test_solver {
                     XOX",
                 ).unwrap()
             ).get_evaluation(),
-            1.
+            Evaluation(1.)
         );
         
         assert_eq!(
@@ -117,7 +161,7 @@ mod test_solver {
                     XOX",
                 ).unwrap()
             ).get_evaluation(),
-            1.
+            Evaluation(1.)
         );
 
         assert_eq!(
@@ -128,7 +172,7 @@ mod test_solver {
                     XXO",
                 ).unwrap()
             ).get_evaluation(),
-            0.
+            Evaluation(0.)
         );
 
         assert_eq!(
@@ -139,7 +183,7 @@ mod test_solver {
                     XXO",
                 ).unwrap()
             ).get_evaluation(),
-            -1.
+            Evaluation(-1.)
         );
 
         
@@ -150,7 +194,7 @@ mod test_solver {
                     O__
                     XXO",
                 ).unwrap()
-            ).get_evaluation() < 0.0001
+            ).get_evaluation() < Evaluation(0.0001)
         );
     }
 }

@@ -3,7 +3,7 @@ mod tree;
 mod solver;
 
 use clap::{App, SubCommand, Arg};
-use crate::board::board::{Board, Move};
+use crate::board::board::{Board, Move, Outcome};
 use crate::solver::solver::Solver;
 
 
@@ -17,7 +17,12 @@ fn main() {
 				.arg(
 					Arg::with_name("Position")
 						.help("Tic Tac Toe Position")						
-				)
+				).arg(
+                    Arg::with_name("Show Line")
+                        .help("Show an example optimal line from the best move")
+                        .short('l')
+                        .long("line")
+                )
             ).get_matches();
     
     if let Some(matches) = matches.subcommand_matches("solve") {
@@ -26,11 +31,43 @@ fn main() {
                 match Board::from_position(position) {
                     Ok(board) => {
                         let mut solver = Solver::from_board(board);
-                        let next_moves = solver.get_next_moves();
-                        println!("Next moves: {:?}", next_moves);
+                        match matches.is_present("Show Line") {
+                            true => {
+                                match solver.get_evaluation_and_line() {
+                                    (evaluation, line) => {
+                                        let mut boards = vec![board];
+                                        for m in line.iter() {
+                                            let last_board = boards.last().unwrap();
+                                            let next_board = last_board.with_move_made(
+                                                last_board.get_active_player().unwrap(),
+                                                *m
+                                            ).unwrap();
+                                            boards.push(next_board);
+                                        }
+                                        let boards_string = boards.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n\n");
+                                        println!("\n\nEvaluation:\n{}\n\nLine:\n{}", evaluation.to_string(), boards_string);
+                                    },
+                                }
+                            },
+                            false => {
+                                match solver.get_next_moves_and_evaluation() {
+                                    Ok((next_moves, evaluation)) => {
+                                        let next_moves_string = next_moves.iter()
+                                            .map(|x| x.to_string())
+                                            .collect::<Vec<String>>()
+                                            .join("\n");
+                                        
+                                        println!("\n\nEvaluation: {}\nIndifferent between these moves:\n{}", evaluation.to_string(), next_moves_string);
+                                    },
+                                    Err(error) => {
+                                        println!("{}", error);
+                                    }
+                                }
+                            }
+                        }
                     },
                     Err(error) => {
-                        println!("Invalid Position: {}", error);
+                        println!("{}", error);
                     }
                 }
             },
@@ -45,6 +82,8 @@ fn main() {
 
 #[cfg(test)]
 mod test_integration_tests {
+    use crate::solver::solver::Evaluation;
+
     use super::*;
 
     #[test]
@@ -83,7 +122,7 @@ mod test_integration_tests {
                 __O",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(2, 0)], 1.)));
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(2, 0)], Evaluation::new(1.))));
 
         let mut solver = Solver::from_board(
             Board::from_position(
@@ -92,7 +131,7 @@ mod test_integration_tests {
                 ___",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(1, 1), Move::new(2, 0)], 1.)));
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 0), Move::new(1, 1), Move::new(2, 0)], Evaluation::new(1.))));
 
         
         let mut solver = Solver::from_board(
@@ -102,7 +141,7 @@ mod test_integration_tests {
                 __X",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 2), Move::new(2, 1)], -1.)));
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(1, 2), Move::new(2, 1)], Evaluation::new(-1.))));
 
         let mut solver = Solver::from_board(
             Board::from_position(
@@ -111,7 +150,7 @@ mod test_integration_tests {
                 XXO",
             ).unwrap()
         );
-        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(0, 2), Move::new(1, 1), Move::new(1, 2)], 0.)));
+        assert_eq!(solver.get_next_moves_and_evaluation(), Ok((vec![Move::new(0, 2), Move::new(1, 1), Move::new(1, 2)], Evaluation::new(0.))));
 
     }
 
