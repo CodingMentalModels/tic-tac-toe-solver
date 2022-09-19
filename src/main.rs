@@ -35,16 +35,25 @@ fn main() {
                             true => {
                                 match solver.get_evaluation_and_line() {
                                     (evaluation, line) => {
-                                        let mut boards = vec![board];
+                                        let mut moves_and_boards: Vec<(Option<Move>, Board)> = vec![(None, board)];
                                         for m in line.iter() {
-                                            let last_board = boards.last().unwrap();
+                                            let last_board = moves_and_boards.last().unwrap().1;
                                             let next_board = last_board.with_move_made(
                                                 last_board.get_active_player().unwrap(),
                                                 *m
                                             ).unwrap();
-                                            boards.push(next_board);
+                                            moves_and_boards.push((Some(*m), next_board));
                                         }
-                                        let boards_string = boards.iter().map(|x| x.to_string()).collect::<Vec<String>>().join("\n\n");
+                                        let boards_string = moves_and_boards.iter().map(|(maybe_m, board)| {
+                                            match maybe_m {
+                                                Some(m) => {
+                                                    format!("{}", board.to_string_with_square_highlighted(m.get_row(), m.get_column()))
+                                                },
+                                                None => {
+                                                    format!("{}", board.to_string())
+                                                }
+                                            }
+                                        }).collect::<Vec<String>>().join("\n\n");
                                         println!("\n\nEvaluation:\n{}\n\nLine:\n{}", evaluation.to_string(), boards_string);
                                     },
                                 }

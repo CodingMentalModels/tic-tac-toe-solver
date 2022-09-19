@@ -47,6 +47,8 @@ In between values refer to those where the evaluation is uncertain.
 
 Goal: In the terminal, we should be able to call the solver on a certain position and get the results.
 
+### TODO: Output the evaluation in addition to the best moves
+
 ### TODO: Improve the rendering of the output to show the best move
 
 ### TODO: Print the path of the optimal game
